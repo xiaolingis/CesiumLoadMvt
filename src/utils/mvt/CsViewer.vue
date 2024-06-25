@@ -2291,7 +2291,6 @@ function updateScreenInputs(newValue, oldValue) {
   }
 }
 
-
 export default {
   data() {
     return {
@@ -2511,6 +2510,7 @@ export default {
           new Cesium.UrlTemplateImageryProvider({
             url: new Cesium.Resource({
               url: "http://27.188.73.109:2229/worldtiles/{z}/{x}/{y}.png",
+              // url: "http://106.119.74.112:2229/worldtiles/{z}/{x}/{y}.png",
               headers: {
                 "Access-Control-Allow-Origin": "*",
               },

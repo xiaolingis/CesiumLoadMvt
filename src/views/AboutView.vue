@@ -1,6 +1,6 @@
 <template>
   <div class="about">
-    <cs-viewer :flyTo="flyTo">
+    <cs-viewer>
       <template #dataSources="{ csEvents }">
         <cs-mvt-data-source
           :cs-events="csEvents"
@@ -15,30 +15,17 @@
           :tile-cache-size="0"
           :preload-ancestors="false"
           :preload-siblings="false"
+          :show="true"
+          :index="1"
+          :csEvents="csEvents"
+          dataSourceName="mvt"
+          :entityFactory="entityFactory"
+          :tilingScheme="tilingScheme"
+          :url="mvtUrl"
+          :layerStyle="layerStyle"
+          :custom-tags="customTags"
+          :maximumLevel="24"
         >
-          <template #imageryLayers="{ globeEvents }">
-            <cs-mvt-imagery-layer
-              :globeEvents="globeEvents"
-              :show="true"
-              :index="1"
-              :csEvents="csEvents"
-              dataSourceName="mvt"
-            >
-              <template #default="{ registerImageryProvider }">
-                <cs-mvt-imagery-provider
-                  :csEvents="csEvents"
-                  dataSourceName="mvt"
-                  :entityFactory="entityFactory"
-                  :registerImageryProvider="registerImageryProvider"
-                  :tilingScheme="tilingScheme"
-                  :url="mvtUrl"
-                  :layerStyle="layerStyle"
-                  :custom-tags="customTags"
-                  :maximumLevel="24"
-                />
-              </template>
-            </cs-mvt-imagery-layer>
-          </template>
         </cs-globe>
       </template>
     </cs-viewer>
@@ -47,8 +34,6 @@
 <script>
 import CsGlobe from "@/utils/mvt/CsGlobe.vue";
 import CsViewer from "@/utils/mvt/CsViewer.vue";
-import CsMvtImageryLayer from "@/utils/mvt/CsMvtImageryLayer.vue";
-import CsMvtImageryProvider from "@/utils/mvt/CsMvtImageryProvider.vue";
 import CsMvtDataSource from "@/utils/mvt/CsMvtDataSource.vue";
 import * as Cesium from "cesium";
 import { SceneMode, ArcType } from "cesium";
@@ -93,13 +78,13 @@ class MvtEntityFactory {
         outlineWidth: 2,
       },
       label: {
-        canvasWidth:256, 
-        canvasHeight:32, 
+        canvasWidth: 256,
+        canvasHeight: 32,
         font: "16px",
-        fillColor: '#ffffff',
+        fillColor: "#ffffff",
         text: feature.properties.name,
         // pixelOffset: new Cesium.Cartesian2(-15, -15),
-        outlineColor: '#000000',
+        outlineColor: "#000000",
         outlineWidth: 0.0001,
         verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
         horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
@@ -217,6 +202,7 @@ export default {
         "http://27.188.73.109:2231/stservice/tile_vector/1790317500257325058/{z}/{x}/{y}?ak=c2f8c84366f20551e33b048709687598", // 点
         // "http://27.188.73.109:2231/stservice/tile_vector/1790311285146046465/{z}/{x}/{y}?ak=c2f8c84366f20551e33b048709687598", // 面
         // "http://27.188.73.109:2231/stservice/tile_vector/1790310677236207618/{z}/{x}/{y}?ak=c2f8c84366f20551e33b048709687598", // 面
+        // "http://106.119.74.112:2231/stservice/tile_vector/1786734431692886018/{z}/{x}/{y}?ak=c2f8c84366f20551e33b048709687598",
       // "https://noaa-wcsd-zarr-pds.s3.us-east-1.amazonaws.com/spatial/mvt/global/{z}/{x}/{y}.pbf?t={t}",
       customTags: {
         t: () => `${Date.now()}`,
@@ -227,8 +213,7 @@ export default {
   components: {
     CsGlobe,
     CsViewer,
-    CsMvtImageryLayer,
-    CsMvtImageryProvider,
+    // CsMvtImageryLayer,
     CsMvtDataSource,
   },
 };

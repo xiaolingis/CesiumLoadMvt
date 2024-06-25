@@ -6,6 +6,8 @@
 
 <script>
 import * as Cesium from "cesium";
+import { MapboxVectorTileImageryLayer } from "./MapboxVectorTileImageryLayer";
+import { MapboxVectorTileImageryProvider } from "./MapboxVectorTileImageryProvider";
 
 class IndexedImageryLayer {
   constructor(index, imageryLayer) {
@@ -23,6 +25,13 @@ export default {
       globeEvents: {
         registerImageryLayer: null,
       },
+      layer: null,
+      viewer: null,
+      dataSource: null,
+      needNewLayer: false,
+      imageryLayer: null,
+      imageryProvider: null,
+      needNewProvider: false,
     };
   },
   beforeMount() {
@@ -30,6 +39,19 @@ export default {
   },
   mounted() {
     this.initializeGlobe();
+    this.csEvents.onNewViewer((nextViewer) => {
+      this.viewer = nextViewer;
+      this.needNewLayer = true;
+      this.updateImageryProvider();
+    });
+    this.csEvents.onUpdateDatasource((nextDataSource) => {
+      if (nextDataSource.name === this.dataSourceName) {
+        console.log(nextDataSource);
+        this.dataSource = nextDataSource;
+        this.needNewLayer = true;
+        this.updateImageryProvider();
+      }
+    });
   },
   props: {
     csEvents: undefined,
@@ -64,7 +86,6 @@ export default {
     preloadAncestors: undefined, // true
     preloadSiblings: undefined, // false
     shadows: undefined, // ShadowMode.RECEIVE_ONLY
-    show: undefined, // true
     showGroundAtmosphere: undefined, // true
     showSkirts: undefined, // true
     showWaterEffect: undefined, // true
@@ -76,6 +97,102 @@ export default {
     undergroundColor: undefined, // Color.BLACK
     undergroundColorAlphaByDistance: undefined,
     vertexShadowDarkness: undefined, // 0.3
+    index: undefined,
+    dataSourceName: undefined,
+    alpha: {
+      type: Number,
+      value: 1.0,
+    },
+    nightAlpha: {
+      type: Number,
+      value: 1.0,
+    },
+    dayAlpha: {
+      type: Number,
+      value: 1.0,
+    },
+    brightness: {
+      type: Number,
+      value: 1.0,
+    },
+    contrast: {
+      type: Number,
+      value: 1.0,
+    },
+    hue: {
+      type: Number,
+      value: 0.0,
+    },
+    saturation: {
+      type: Number,
+      value: 1.0,
+    },
+    gamma: {
+      type: Number,
+      value: 1.0,
+    },
+    splitDirection: Cesium.SplitDirection.NONE,
+    minificationFilter: Cesium.TextureMinificationFilter.LINEAR,
+    magnificationFilter: Cesium.TextureMagnificationFilter.LINEAR,
+    show: {
+      type: Boolean,
+      value: true,
+    },
+    maximumAnisotropy: undefined,
+    minimumTerrainLevel: undefined,
+    maximumTerrainLevel: undefined,
+    cutoutRectangle: undefined,
+    colorToAlpha: undefined,
+    colorToAlphaThreshold: {
+      type: Number,
+      value: 0.004,
+    },
+    layerStyle: {
+      type: Object,
+      default: ()=>{}
+    },
+    entityFactory: undefined,
+    options: undefined,
+    url: undefined,
+    pickFeaturesUrl: undefined,
+    urlSchemeZeroPadding: undefined,
+    subdomains: {
+      type: String,
+      value: "abc",
+      default: 'abc',
+    },
+    credit: {
+      type: String,
+      default: "",
+    },
+    minimumLevel: {
+      type: Number,
+      default: 0,
+    },
+    maximumLevel: undefined,
+    rectangle: {
+      type: Object,
+      default: () => Cesium.Rectangle.MAX_VALUE,
+    },
+    tilingScheme: undefined,
+    tileWidth: {
+      type: Number,
+      default: 256,
+    },
+    tileHeight: {
+      type: Number,
+      default: 256,
+    },
+    hasAlphaChannel: {
+      type: Boolean,
+      default: true,
+    },
+    getFeatureInfoFormats: undefined,
+    enablePickFeatures: {
+      type: Boolean,
+      default: false,
+    },
+    customTags: undefined,
   },
   methods: {
     initializeLayers() {
@@ -201,6 +318,87 @@ export default {
       this.layers = tempLayers;
       this.initializeLayers();
     },
+    updateImageryLayer(newValue) {
+      if (this.viewer && this.dataSource) {
+        const props = {
+          index: this.index,
+          csEvents: this.csEvents,
+          dataSourceName: this.dataSourceName,
+          globeEvents: this.globeEvents,
+          rectangle: this.rectangle,
+          alpha: this.alpha,
+          nightAlpha: this.nightAlpha,
+          dayAlpha: this.dayAlpha,
+          brightness: this.brightness,
+          contrast: this.contrast,
+          hue: this.hue,
+          saturation: this.saturation,
+          gamma: this.gamma,
+          splitDirection: this.splitDirection,
+          minificationFilter: this.minificationFilter,
+          magnificationFilter: this.magnificationFilter,
+          show: this.show,
+          maximumAnisotropy: this.maximumAnisotropy,
+          minimumTerrainLevel: this.minimumTerrainLevel,
+          maximumTerrainLevel: this.maximumTerrainLevel,
+          cutoutRectangle: this.cutoutRectangle,
+          colorToAlpha: this.colorToAlpha,
+          colorToAlphaThreshold: this.colorToAlphaThreshold,
+        };
+        this.imageryLayer = newValue;
+        const newLayer = new MapboxVectorTileImageryLayer(
+          this.imageryLayer,
+          this.dataSource,
+          this.viewer.scene.globe,
+          props
+        );
+        this.globeEvents.registerImageryLayer(newLayer, this.index);
+        this.layer = newLayer;
+      }
+      this.needNewLayer = false;
+    },
+    registerImageryProvider(ip) {
+      this.imageryLayer = ip;
+      this.needNewLayer = true;
+    },
+    render() {},
+    updateImageryProvider() {
+      if (this.viewer && this.dataSource) {
+        const props = {
+          csEvents: this.csEvents,
+          registerImageryProvider: this.registerImageryProvider,
+          dataSourceName: this.dataSourceName,
+          entityFactory: this.entityFactory,
+          options: this.options,
+          url: this.url,
+          pickFeaturesUrl: this.pickFeaturesUrl,
+          urlSchemeZeroPadding: this.urlSchemeZeroPadding,
+          subdomains: this.subdomains,
+          credit: this.credit,
+          minimumLevel: this.minimumLevel,
+          maximumLevel: this.maximumLevel,
+          rectangle: this.rectangle,
+          tilingScheme: this.tilingScheme,
+          ellipsoid: this.ellipsoid,
+          tileWidth: this.tileWidth,
+          tileHeight: this.tileHeight,
+          hasAlphaChannel: this.hasAlphaChannel,
+          getFeatureInfoFormats: this.getFeatureInfoFormats,
+          enablePickFeatures: this.enablePickFeatures,
+          customTags: this.customTags,
+          layerStyle: this.layerStyle
+        };
+        this.imageryProvider = new MapboxVectorTileImageryProvider(
+          props,
+          this.dataSource,
+          this.entityFactory
+        );
+        // console.log(this.imageryProvider);
+        // debugger;
+        props.registerImageryProvider(this.imageryProvider);
+      }
+      this.needNewProvider = false;
+    },
   },
   watch: {
     needNewGlobe(newValue, oldValue) {
@@ -209,7 +407,8 @@ export default {
       }
     },
     ellipsoid() {
-      this.needNewGlobe.value = true;
+      this.needNewGlobe = true;
+      this.needNewProvider = true;
     },
     atmosphereBrightnessShift(newValue) {
       if (newValue === undefined) {
@@ -427,6 +626,9 @@ export default {
       } else if (this.globe) {
         this.globe.show = newValue;
       }
+      if (this.layer) {
+        this.layer.show = newValue;
+      }
     },
     showGroundAtmosphere(newValue) {
       if (newValue === undefined) {
@@ -504,6 +706,172 @@ export default {
       } else if (this.globe) {
         this.globe.vertexShadowDarkness = newValue;
       }
+    },
+    alpha(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.alpha = newValue;
+      }
+    },
+    brightness(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.brightness = newValue;
+      }
+    },
+    colorToAlpha(newValue) {
+      if (!newValue) {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.colorToAlpha = newValue;
+      }
+    },
+    colorToAlphaThreshold(newValue) {
+      if (this.layer) {
+        this.layer.colorToAlphaThreshold = newValue;
+      }
+    },
+    contrast(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.contrast = newValue;
+      }
+    },
+    cutoutRectangle(newValue) {
+      if (!newValue) {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.cutoutRectangle = newValue;
+      }
+    },
+    dayAlpha(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.dayAlpha = newValue;
+      }
+    },
+    gamma(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.gamma = newValue;
+      }
+    },
+    hue(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.hue = newValue;
+      }
+    },
+    magnificationFilter(newValue) {
+      if (this.layer) {
+        this.layer.magnificationFilter = newValue;
+      }
+    },
+    minificationFilter(newValue) {
+      if (this.layer) {
+        this.layer.minificationFilter = newValue;
+      }
+    },
+    nightAlpha(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.nightAlpha = newValue;
+      }
+    },
+    saturation(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.saturation = newValue;
+      }
+    },
+    splitDirection(newValue) {
+      if (typeof newValue === "function") {
+        this.needNewLayer = true;
+      } else if (this.layer) {
+        this.layer.splitDirection = newValue;
+      }
+    },
+    rectangle(newValue) {
+      this.needNewProvider = true;
+    },
+    maximumAnisotropy(newValue) {
+      this.needNewProvider = true;
+    },
+    minimumTerrainLevel(newValue) {
+      this.needNewProvider = true;
+    },
+    maximumTerrainLevel(newValue) {
+      this.needNewProvider = true;
+    },
+    needNewLayer(newValue, oldValue) {
+      if (this.imageryLayer && !oldValue && newValue) {
+        this.updateImageryLayer(this.imageryLayer);
+      }
+    },
+    dataSourceName() {
+      this.needNewProvider = true;
+    },
+    entityFactory() {
+      this.needNewProvider = true;
+    },
+    options() {
+      this.needNewProvider = true;
+    },
+    url() {
+      this.needNewProvider = true;
+    },
+    pickFeaturesUrl() {
+      this.needNewProvider = true;
+    },
+    urlSchemeZeroPadding() {
+      this.needNewProvider = true;
+    },
+    subdomains() {
+      this.needNewProvider = true;
+    },
+    credit() {
+      this.needNewProvider = true;
+    },
+    minimumLevel() {
+      this.needNewProvider = true;
+    },
+    maximumLevel() {
+      this.needNewProvider = true;
+    },
+    tilingScheme() {
+      this.needNewProvider = true;
+    },
+    tileWidth() {
+      this.needNewProvider = true;
+    },
+    tileHeight() {
+      this.needNewProvider = true;
+    },
+    hasAlphaChannel() {
+      this.needNewProvider = true;
+    },
+    getFeatureInfoFormats() {
+      this.needNewProvider = true;
+    },
+    enablePickFeatures() {
+      this.needNewProvider = true;
+    },
+    customTags() {
+      this.needNewProvider = true;
+    },
+    viewer() {
+      this.needNewProvider = true;
+    },
+    dataSource() {
+      this.needNewProvider = true;
     },
   },
 };
